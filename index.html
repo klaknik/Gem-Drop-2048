@@ -46,567 +46,6 @@
       border-radius: 16px;
       border: 2px solid #00ff66;
       box-shadow: 0 0 25px rgba(0, 255, 102, 0.2);
-    }
-
-    #ui-bar {
-      position: absolute;
-      top: 10px;
-      width: calc(100% - 20px);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background: rgba(3, 20, 8, 0.85);
-      border: 1px solid #00ff66;
-      border-radius: 14px;
-      padding: 8px 12px;
-      z-index: 10;
-      backdrop-filter: blur(6px);
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-    }
-
-    .ui-col {
-      display: flex;
-      flex-direction: column;
-    }
-
-    .ui-title {
-      font-size: 9px;
-      color: #7aff9e;
-      text-transform: uppercase;
-      font-weight: 700;
-    }
-
-    .ui-num {
-      font-size: 16px;
-      font-weight: 800;
-      color: #00ff66;
-      text-shadow: 0 0 6px rgba(0, 255, 102, 0.6);
-    }
-
-    .crypto-balances {
-      display: flex;
-      gap: 8px;
-      background: rgba(255, 255, 255, 0.06);
-      padding: 4px 10px;
-      border-radius: 20px;
-      border: 1px solid rgba(0, 255, 102, 0.3);
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .c-badge {
-      display: flex;
-      align-items: center;
-      gap: 3px;
-    }
-
-    #buff-indicator {
-      position: absolute;
-      top: 64px;
-      left: 50%;
-      transform: translateX(-50%);
-      display: flex;
-      gap: 8px;
-      z-index: 10;
-      pointer-events: none;
-    }
-
-    .buff-pill {
-      background: rgba(0, 0, 0, 0.75);
-      border-radius: 20px;
-      padding: 4px 10px;
-      font-size: 11px;
-      font-weight: 700;
-      border: 1px solid #ffcc00;
-      color: #ffcc00;
-      box-shadow: 0 0 10px rgba(255, 204, 0, 0.4);
-    }
-
-    #game-over {
-      display: none;
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background: rgba(2, 12, 5, 0.92);
-      backdrop-filter: blur(8px);
-      z-index: 50;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 16px;
-      border-radius: 16px;
-    }
-
-    #game-over h1 {
-      font-size: 32px;
-      color: #ff3366;
-      text-shadow: 0 0 12px #ff3366;
-    }
-
-    .result-text {
-      text-align: center;
-      line-height: 1.6;
-      font-size: 15px;
-      color: #e0ffe6;
-    }
-
-    .restart-btn {
-      background: linear-gradient(135deg, #00ff66, #00b344);
-      color: #020c05;
-      font-weight: 800;
-      border: none;
-      padding: 14px 32px;
-      border-radius: 30px;
-      font-size: 16px;
-      cursor: pointer;
-      box-shadow: 0 0 18px rgba(0, 255, 102, 0.5);
-      transition: transform 0.1s;
-    }
-
-    .restart-btn:active {
-      transform: scale(0.95);
-    }
-  </style>
-</head>
-<body>
-
-  <div id="game-container">
-    <div id="ui-bar">
-      <div class="ui-col">
-        <span class="ui-title">Высота</span>
-        <span class="ui-num" id="ui-score">0</span>
-      </div>
-
-      <div class="crypto-balances">
-        <div class="c-badge" style="color: #38bdf8;">💎 <span id="b-gram">0</span></div>
-        <div class="c-badge" style="color: #a78bfa;">💠 <span id="b-eth">0</span></div>
-        <div class="c-badge" style="color: #f59e0b;">🪙 <span id="b-btc">0</span></div>
-      </div>
-
-      <div class="ui-col" style="text-align: right;">
-        <span class="ui-title">Рекорд</span>
-        <span class="ui-num" id="ui-best">0</span>
-      </div>
-    </div>
-
-    <div id="buff-indicator"></div>
-
-    <canvas id="canvas"></canvas>
-
-    <div id="game-over">
-      <h1>ЛИКВИДАЦИЯ!</h1>
-      <div class="result-text">
-        Высота: <b id="final-score" style="color: #00ff66;">0</b> м<br>
-        Собрано за забег:<br>
-        <span style="color: #38bdf8;">💎 GRAM: <b id="run-gram">0</b></span> | 
-        <span style="color: #a78bfa;">💠 ETH: <b id="run-eth">0</b></span> | 
-        <span style="color: #f59e0b;">🪙 BTC: <b id="run-btc">0</b></span>
-      </div>
-      <button class="restart-btn" id="btn-restart">🚀 В БОЙ СНОВА</button>
-    </div>
-  </div>
-
-  <script>
-    // 1. Инициализация Telegram WebApp
-    const tg = window.Telegram?.WebApp;
-    if (tg) {
-      tg.ready();
-      tg.expand();
-    }
-
-    function haptic(type = 'light') {
-      if (tg?.HapticFeedback) {
-        if (type === 'heavy') tg.HapticFeedback.notificationOccurred('error');
-        else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
-        else tg.HapticFeedback.impactOccurred(type);
-      }
-    }
-
-    // 2. Аудио (Web Audio API)
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-
-    function initAudio() {
-      if (!audioCtx) audioCtx = new AudioCtx();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    }
-
-    function playTone(freq, duration = 0.1, type = 'sine') {
-      try {
-        initAudio();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
-        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + duration);
-        osc.connect(gain);
-        gain.connect(audioCtx.destination);
-        osc.start();
-        osc.stop(audioCtx.currentTime + duration);
-      } catch (e) {}
-    }
-
-    // 3. Параметры Canvas и геометрия
-    const canvas = document.getElementById('canvas');
-    const ctx = canvas.getContext('2d');
-    const WIDTH = 380;
-    const HEIGHT = 620;
-    canvas.width = WIDTH;
-    canvas.height = HEIGHT;
-
-    // Балансы и хранилище
-    let totalGram = parseInt(localStorage.getItem('ch_gram') || '0', 10);
-    let totalEth = parseInt(localStorage.getItem('ch_eth') || '0', 10);
-    let totalBtc = parseInt(localStorage.getItem('ch_btc') || '0', 10);
-    let bestHeight = parseInt(localStorage.getItem('ch_best') || '0', 10);
-
-    let runGram = 0, runEth = 0, runBtc = 0;
-    let currentHeight = 0;
-    let isGameOver = false;
-
-    function updateUI() {
-      document.getElementById('b-gram').textContent = totalGram;
-      document.getElementById('b-eth').textContent = totalEth;
-      document.getElementById('b-btc').textContent = totalBtc;
-      document.getElementById('ui-best').textContent = bestHeight;
-      document.getElementById('ui-score').textContent = currentHeight;
-    }
-    updateUI();
-
-    // 4. Игрок: Хомяк-Трейдер
-    const player = {
-      x: WIDTH / 2 - 18,
-      y: HEIGHT - 140,
-      w: 36,
-      h: 36,
-      vx: 0,
-      vy: -11,
-      gravity: 0.38,
-      jumpPower: -11.5,
-      facingRight: true,
-      rocketTimer: 0,
-      magnetTimer: 0,
-
-      draw() {
-        ctx.save();
-        ctx.translate(this.x + this.w / 2, this.y + this.h / 2);
-        if (!this.facingRight) ctx.scale(-1, 1);
-
-        // Ушки
-        ctx.fillStyle = '#ffb3ba';
-        ctx.beginPath();
-        ctx.arc(-13, -14, 5, 0, Math.PI * 2);
-        ctx.arc(13, -14, 5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Тело
-        ctx.fillStyle = '#e8a85c';
-        ctx.beginPath();
-        ctx.arc(0, 0, 17, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Животик
-        ctx.fillStyle = '#fff4e3';
-        ctx.beginPath();
-        ctx.ellipse(0, 4, 11, 9, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Черные очки криптотрейдера
-        ctx.fillStyle = '#05070a';
-        ctx.fillRect(-14, -6, 12, 7);
-        ctx.fillRect(2, -6, 12, 7);
-        ctx.fillRect(-2, -4, 4, 3);
-        ctx.fillStyle = '#00f2fe';
-        ctx.fillRect(-11, -4, 4, 2);
-        ctx.fillRect(5, -4, 4, 2);
-
-        // Носик
-        ctx.fillStyle = '#ff6b81';
-        ctx.beginPath();
-        ctx.arc(0, 3, 2, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Эффект огня ракеты
-        if (this.rocketTimer > 0) {
-          ctx.fillStyle = '#ff3300';
-          ctx.beginPath();
-          ctx.arc(0, 22, 6 + Math.random() * 4, 0, Math.PI * 2);
-          ctx.fill();
-          ctx.fillStyle = '#ffcc00';
-          ctx.beginPath();
-          ctx.arc(0, 19, 4, 0, Math.PI * 2);
-          ctx.fill();
-        }
-
-        ctx.restore();
-      }
-    };
-
-    // 5. Игровой мир (Платформы, Монеты, Бустеры)
-    let platforms = [];
-    let coins = [];
-    let boosters = [];
-    let highestWorldY = HEIGHT - 140;
-
-    function getGap(h) {
-      return Math.min(135, 60 + (h / 3500) * 65);
-    }
-
-    function spawnPlatformRow(y) {
-      const w = 72;
-      const x = Math.random() * (WIDTH - w - 24) + 12;
-      const redChance = Math.min(0.40, 0.12 + (currentHeight / 8000) * 0.28);
-      const roll = Math.random();
-
-      let type = 'normal';
-      let vx = 0;
-
-      if (roll < redChance) {
-        type = 'dump'; // Красная трескающаяся свеча
-      } else if (roll < redChance + 0.25) {
-        type = 'moving'; // Синяя подвижная свеча
-        vx = (Math.random() < 0.5 ? 1 : -1) * (1.5 + Math.min(2.0, currentHeight / 4000));
-      }
-
-      const p = { x, y, w, h: 14, type, vx, broken: false };
-      platforms.push(p);
-
-      // Спавн бустеров и монет
-      if (type !== 'dump') {
-        const bRoll = Math.random();
-        if (bRoll < 0.035) {
-          boosters.push({ x: x + w / 2, y: y - 18, type: 'rocket', platform: p });
-        } else if (bRoll < 0.08) {
-          boosters.push({ x: x + w / 2, y: y - 18, type: 'magnet', platform: p });
-        } else if (Math.random() < 0.45) {
-          // Трёхуровневая система круглых монет
-          const cRoll = Math.random();
-          let cType = 'gram';
-          let val = 1;
-          if (cRoll < 0.08) { cType = 'btc'; val = 25; }
-          else if (cRoll < 0.30) { cType = 'eth'; val = 5; }
-
-          coins.push({
-            x: x + w / 2,
-            y: y - 16,
-            r: 9,
-            type: cType,
-            val: val,
-            angle: Math.random() * Math.PI,
-            platform: p,
-            collected: false
-          });
-        }
-      }
-    }
-
-    function initGame() {
-      platforms = [];
-      coins = [];
-      boosters = [];
-      runGram = 0; runEth = 0; runBtc = 0;
-      currentHeight = 0;
-      highestWorldY = HEIGHT - 140;
-      isGameOver = false;
-
-      player.x = WIDTH / 2 - 18;
-      player.y = HEIGHT - 140;
-      player.vx = 0;
-      player.vy = player.jumpPower;
-      player.rocketTimer = 0;
-      player.magnetTimer = 0;
-
-      // Стартовая зеленая свеча под игроком
-      platforms.push({ x: WIDTH / 2 - 40, y: HEIGHT - 60, w: 80, h: 14, type: 'normal', vx: 0, broken: false });
-
-      let curY = HEIGHT - 120;
-      while (curY > -100) {
-        curY -= getGap(0);
-        spawnPlatformRow(curY);
-      }
-
-      document.getElementById('game-over').style.display = 'none';
-      updateUI();
-    }
-
-    // 6. Сенсорное и клавиатурное управление
-    let leftPressed = false;
-    let rightPressed = false;
-
-    window.addEventListener('keydown', e => {
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftPressed = true;
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightPressed = true;
-    });
-
-    window.addEventListener('keyup', e => {
-      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') leftPressed = false;
-      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') rightPressed = false;
-    });
-
-    window.addEventListener('pointerdown', e => {
-      const rect = canvas.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      if (x < rect.width / 2) {
-        leftPressed = true;
-        rightPressed = false;
-      } else {
-        rightPressed = true;
-        leftPressed = false;
-      }
-    });
-
-    window.addEventListener('pointerup', () => {
-      leftPressed = false;
-      rightPressed = false;
-    });
-
-    document.getElementById('btn-restart').onclick = initGame;
-
-    // 7. Обновление физики и логики
-    function update() {
-      if (isGameOver) return;
-
-      // Горизонтальное движение
-      if (leftPressed) {
-        player.vx = -6.2;
-        player.facingRight = false;
-      } else if (rightPressed) {
-        player.vx = 6.2;
-        player.facingRight = true;
-      } else {
-        player.vx *= 0.82;
-      }
-      player.x += player.vx;
-
-      // Бесшовный проход через границы
-      if (player.x + player.w < 0) player.x = WIDTH;
-      if (player.x > WIDTH) player.x = -player.w;
-
-      // Полет на ракете или обычная гравитация
-      if (player.rocketTimer > 0) {
-        player.rocketTimer--;
-        player.vy = -15;
-      } else {
-        player.vy += player.gravity;
-      }
-      player.y += player.vy;
-
-      // Прыжки от платформ (только при падении вниз)
-      if (player.vy > 0 && player.rocketTimer <= 0) {
-        for (let p of platforms) {
-          if (
-            player.x + player.w * 0.7 > p.x &&
-            player.x + player.w * 0.3 < p.x + p.w &&
-            player.y + player.h >= p.y &&
-            player.y + player.h <= p.y + p.h + player.vy + 2
-          ) {
-            if (p.type === 'dump') {
-              p.broken = true; // Красная свеча ломается
-              player.vy = player.jumpPower * 0.9;
-              playTone(160, 0.15, 'sawtooth');
-              haptic('heavy');
-            } else {
-              player.vy = player.jumpPower;
-              playTone(360, 0.08, 'triangle');
-              haptic('light');
-            }
-            break;
-          }
-        }
-      }
-
-      // Удаление сломанных свечей
-      platforms = platforms.filter(p => !p.broken);
-
-      // Движение платформ
-      for (let p of platforms) {
-        if (p.type === 'moving') {
-          p.x += p.vx;
-          if (p.x <= 8 || p.x + p.w >= WIDTH - 8) p.vx *= -1;
-        }
-      }
-
-      // Бустер: Магнит (притягивает монеты)
-      if (player.magnetTimer > 0) {
-        player.magnetTimer--;
-        const px = player.x + player.w / 2;
-        const py = player.y + player.h / 2;
-        for (let c of coins) {
-          if (!c.collected) {
-            const dx = px - c.x;
-            const dy = py - c.y;
-            const dist = Math.hypot(dx, dy);
-            if (dist < 260) {
-              c.x += (dx / dist) * 7.5;
-              c.y += (dy / dist) * 7.5;
-            }
-          }
-        }
-      }
-
-      // Сбор бустеров (Ракета / Магнит)
-      const px = player.x + player.w / 2;
-      const py = player.y + player.h / 2;
-      for (let b of boosters) {
-        if (!b.collected) {
-          if (b.platform && b.platform.type === 'moving') b.x = b.platform.x + b.platform.w / 2;
-          const dist = Math.hypot(px - b.x, py - b.y);
-          if (dist < playerПричина проста: в предоставленном коде скрипт **оборвался прямо на середине строки** (`gain.connect(audioCtx.destination`). Из-за незакрытых скобок браузер выдает синтаксическую ошибку `SyntaxError`, выполнение скрипта падает, поэтому логика игры, отрисовка хомяка, платформ и игровой цикл `requestAnimationFrame` даже не запускаются.
-
-Ниже полностью собранный, рабочий и оптимизированный файл с готовой физикой прыжков, спавном платформ, монетками, ракетами, управлением (сенсор + мышь/стрелки) и прорисовкой самого крипто-хомяка на HTML5 Canvas:
-
-```html
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Crypto Hamster Jump</title>
-  <script src="[https://telegram.org/js/telegram-web-app.js](https://telegram.org/js/telegram-web-app.js)"></script>
-  <style>
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-      user-select: none;
-      -webkit-user-select: none;
-      touch-action: none;
-    }
-
-    body {
-      background: #020c05;
-      color: #fff;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100vh;
-      width: 100vw;
-      overflow: hidden;
-    }
-
-    #game-container {
-      position: relative;
-      width: 100%;
-      max-width: 420px;
-      height: 100%;
-      max-height: 720px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    canvas {
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(180deg, #072611 0%, #020d06 100%);
-      border-radius: 16px;
-      border: 2px solid #00ff66;
-      box-shadow: 0 0 25px rgba(0, 255, 102, 0.2);
       display: block;
     }
 
@@ -755,7 +194,7 @@
 
     <div id="buff-indicator"></div>
 
-    <canvas id="canvas" width="400" height="680"></canvas>
+    <canvas id="canvas" width="380" height="640"></canvas>
 
     <div id="game-over">
       <h1>ЛИКВИДАЦИЯ!</h1>
@@ -771,38 +210,43 @@
   </div>
 
   <script>
-    // 1. Инициализация Telegram Mini App
+    // 1. Инициализация Telegram WebApp
     const tg = window.Telegram?.WebApp;
     if (tg) {
-      tg.ready();
-      tg.expand();
+      try {
+        tg.ready();
+        tg.expand();
+      } catch (e) {}
     }
 
     function haptic(type = 'light') {
-      if (tg?.HapticFeedback) {
-        if (type === 'heavy') tg.HapticFeedback.notificationOccurred('error');
-        else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
-        else tg.HapticFeedback.impactOccurred(type);
-      }
-    }
-
-    // 2. Аудио (Web Audio API)
-    const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    let audioCtx = null;
-
-    function initAudio() {
-      if (!audioCtx) audioCtx = new AudioCtx();
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-    }
-
-    function playTone(freq, duration = 0.1, type = 'sine') {
       try {
-        initAudio();
+        if (tg?.HapticFeedback) {
+          if (type === 'heavy') tg.HapticFeedback.notificationOccurred('error');
+          else if (type === 'success') tg.HapticFeedback.notificationOccurred('success');
+          else tg.HapticFeedback.impactOccurred(type);
+        }
+      } catch (e) {}
+    }
+
+    // 2. Аудио (Web Audio API) с безопасной инициализацией
+    let audioCtx = null;
+    function playTone(freq, duration = 0.08, type = 'sine') {
+      try {
+        if (!audioCtx) {
+          const AudioClass = window.AudioContext || window.webkitAudioContext;
+          if (AudioClass) audioCtx = new AudioClass();
+        }
+        if (audioCtx && audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+        if (!audioCtx) return;
+
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         osc.type = type;
         osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-        gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
         gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + duration);
         osc.connect(gain);
         gain.connect(audioCtx.destination);
@@ -811,301 +255,410 @@
       } catch (e) {}
     }
 
-    // 3. Игровые переменные и настройки
+    // 3. Canvas и геометрия
     const canvas = document.getElementById('canvas');
     const ctx = canvas.getContext('2d');
-    const W = canvas.width;
-    const H = canvas.height;
+    const W = 380;
+    const H = 640;
+    canvas.width = W;
+    canvas.height = H;
 
     let score = 0;
-    let bestScore = Number(localStorage.getItem('hamster_best') || 0);
-    document.getElementById('ui-best').innerText = bestScore;
+    let bestScore = parseInt(localStorage.getItem('hamster_best') || '0', 10);
+    let totalGram = parseInt(localStorage.getItem('ch_gram') || '0', 10);
+    let totalEth = parseInt(localStorage.getItem('ch_eth') || '0', 10);
+    let totalBtc = parseInt(localStorage.getItem('ch_btc') || '0', 10);
 
-    let totalCoins = { gram: 0, eth: 0, btc: 0 };
-    let runCoins = { gram: 0, eth: 0, btc: 0 };
-
+    let runGram = 0, runEth = 0, runBtc = 0;
     let isGameOver = false;
     let rocketTimer = 0;
 
     const player = {
-      x: W / 2 - 20,
-      y: H - 150,
-      w: 42,
-      h: 42,
+      x: W / 2 - 18,
+      y: H - 160,
+      w: 36,
+      h: 36,
       vx: 0,
-      vy: 0,
+      vy: -11,
+      gravity: 0.38,
       jumpForce: -11.5,
       facing: 1
     };
 
-    const gravity = 0.38;
+    let targetX = player.x;
     let platforms = [];
     let items = [];
 
-    // 4. Генерация мира
-    function createPlatform(y, type = 'static') {
+    function updateUI() {
+      document.getElementById('ui-score').textContent = score;
+      document.getElementById('ui-best').textContent = bestScore;
+      document.getElementById('b-gram').textContent = totalGram;
+      document.getElementById('b-eth').textContent = totalEth;
+      document.getElementById('b-btc').textContent = totalBtc;
+    }
+
+    function createPlatform(y, type = 'normal') {
+      const w = 72;
+      const x = Math.random() * (W - w - 24) + 12;
       return {
-        x: Math.random() * (W - 75),
-        y: y,
-        w: 75,
+        x,
+        y,
+        w,
         h: 14,
-        type: type, // static, moving
-        dir: Math.random() > 0.5 ? 1 : -1,
-        speed: 1.5 + Math.random() * 1.5
+        type,
+        vx: type === 'moving' ? (Math.random() < 0.5 ? 1.5 : -1.5) : 0,
+        broken: false
       };
     }
 
-    function initGame() {
-      score = 0;
-      runCoins = { gram: 0, eth: 0, btc: 0 };
-      rocketTimer = 0;
-      isGameOver = false;
-
-      player.x = W / 2 - 21;
-      player.y = H - 140;
-      player.vx = 0;
-      player.vy = player.jumpForce;
-
-      platforms = [];
-      items = [];
-
-      // Стартовая безопасная платформа под ногами
-      platforms.push({ x: W / 2 - 45, y: H - 70, w: 90, h: 14, type: 'static' });
-
-      // Начальный пул платформ
-      let curY = H - 140;
-      while (curY > 0) {
-        curY -= (55 + Math.random() * 35);
-        const type = Math.random() < 0.2 ? 'moving' : 'static';
-        const p = createPlatform(curY, type);
-        platforms.push(p);
-        maybeSpawnItem(p);
-      }
-
-      updateUI();
-      document.getElementById('game-over').style.display = 'none';
-      document.getElementById('buff-indicator').innerHTML = '';
-    }
-
-    function maybeSpawnItem(p) {
-      const rand = Math.random();
-      if (rand < 0.3) {
+    function spawnItem(p) {
+      if (p.type === 'dump') return;
+      const r = Math.random();
+      if (r < 0.35) {
         let type = 'gram';
-        if (rand < 0.05) type = 'rocket';
-        else if (rand < 0.12) type = 'btc';
-        else if (rand < 0.20) type = 'eth';
+        let val = 1;
+        if (r < 0.04) {
+          type = 'rocket';
+        } else if (r < 0.10) {
+          type = 'btc';
+          val = 25;
+        } else if (r < 0.20) {
+          type = 'eth';
+          val = 5;
+        }
 
         items.push({
-          x: p.x + p.w / 2 - 10,
-          y: p.y - 24,
-          w: 20,
-          h: 20,
-          type: type,
+          x: p.x + p.w / 2,
+          y: p.y - 14,
+          r: 9,
+          type,
+          val,
+          platform: p,
           collected: false
         });
       }
     }
 
-    // 5. Управление
-    let targetX = player.x;
+    function initGame() {
+      score = 0;
+      runGram = 0; runEth = 0; runBtc = 0;
+      rocketTimer = 0;
+      isGameOver = false;
 
-    function handlePointer(clientX) {
-      const rect = canvas.getBoundingClientRect();
-      const scaleX = canvas.width / rect.width;
-      targetX = (clientX - rect.left) * scaleX - player.w / 2;
+      player.x = W / 2 - 18;
+      player.y = H - 160;
+      player.vx = 0;
+      player.vy = player.jumpForce;
+      targetX = player.x;
+
+      platforms = [];
+      items = [];
+
+      // Стартовая зеленая свеча
+      platforms.push({ x: W / 2 - 40, y: H - 80, w: 80, h: 14, type: 'normal', vx: 0, broken: false });
+
+      let curY = H - 140;
+      while (curY > -100) {
+        curY -= (58 + Math.random() * 30);
+        const roll = Math.random();
+        let type = 'normal';
+        if (roll < 0.20) type = 'dump';
+        else if (roll < 0.45) type = 'moving';
+
+        const p = createPlatform(curY, type);
+        platforms.push(p);
+        spawnItem(p);
+      }
+
+      updateUI();
+      document.getElementById('buff-indicator').innerHTML = '';
+      document.getElementById('game-over').style.display = 'none';
     }
 
-    window.addEventListener('pointerdown', (e) => { initAudio(); handlePointer(e.clientX); });
-    window.addEventListener('pointermove', (e) => { if (e.buttons) handlePointer(e.clientX); });
+    // 4. Управление: Тап слева/справа экрана или клавиши
+    let moveLeft = false;
+    let moveRight = false;
 
-    window.addEventListener('keydown', (e) => {
-      if (e.code === 'ArrowLeft' || e.code === 'KeyA') targetX = player.x - 35;
-      if (e.code === 'ArrowRight' || e.code === 'KeyD') targetX = player.x + 35;
+    window.addEventListener('pointerdown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const clickX = e.clientX - rect.left;
+      if (clickX < rect.width / 2) {
+        moveLeft = true;
+        moveRight = false;
+      } else {
+        moveRight = true;
+        moveLeft = false;
+      }
     });
 
-    // 6. Отрисовка персонажа и элементов
+    window.addEventListener('pointerup', () => {
+      moveLeft = false;
+      moveRight = false;
+    });
+
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft = true;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight = true;
+    });
+
+    window.addEventListener('keyup', (e) => {
+      if (e.key === 'ArrowLeft' || e.key === 'a' || e.key === 'A') moveLeft = false;
+      if (e.key === 'ArrowRight' || e.key === 'd' || e.key === 'D') moveRight = false;
+    });
+
+    // 5. Отрисовка хомяка
     function drawHamster(x, y, facing) {
       ctx.save();
       ctx.translate(x + player.w / 2, y + player.h / 2);
       if (facing < 0) ctx.scale(-1, 1);
 
-      // Тело
-      ctx.fillStyle = '#e69c24';
+      // Ушки
+      ctx.fillStyle = '#ffb3ba';
       ctx.beginPath();
-      ctx.ellipse(0, 3, 18, 16, 0, 0, Math.PI * 2);
+      ctx.arc(-13, -14, 5, 0, Math.PI * 2);
+      ctx.arc(13, -14, 5, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Тело
+      ctx.fillStyle = '#e8a85c';
+      ctx.beginPath();
+      ctx.arc(0, 0, 17, 0, Math.PI * 2);
       ctx.fill();
 
       // Животик
-      ctx.fillStyle = '#ffdfa9';
+      ctx.fillStyle = '#fff4e3';
       ctx.beginPath();
-      ctx.ellipse(2, 6, 12, 10, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 4, 11, 9, 0, 0, Math.PI * 2);
       ctx.fill();
 
-      // Ушки
-      ctx.fillStyle = '#c77810';
+      // Очки крипто-трейдера
+      ctx.fillStyle = '#05070a';
+      ctx.fillRect(-14, -6, 12, 7);
+      ctx.fillRect(2, -6, 12, 7);
+      ctx.fillRect(-2, -4, 4, 3);
+      ctx.fillStyle = '#00f2fe';
+      ctx.fillRect(-11, -4, 4, 2);
+      ctx.fillRect(5, -4, 4, 2);
+
+      // Носик
+      ctx.fillStyle = '#ff6b81';
       ctx.beginPath();
-      ctx.arc(-11, -12, 6, 0, Math.PI * 2);
-      ctx.arc(11, -12, 6, 0, Math.PI * 2);
+      ctx.arc(0, 3, 2, 0, Math.PI * 2);
       ctx.fill();
 
-      // Глаз и блик
-      ctx.fillStyle = '#000';
-      ctx.beginPath();
-      ctx.arc(7, -3, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#fff';
-      ctx.beginPath();
-      ctx.arc(8, -4, 1.2, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Щечка
-      ctx.fillStyle = '#ff6b8b';
-      ctx.beginPath();
-      ctx.arc(10, 4, 3.5, 0, Math.PI * 2);
-      ctx.fill();
-
-      // Ракета за спиной при бусте
+      // Пламя бустера
       if (rocketTimer > 0) {
-        ctx.fillStyle = '#ff3366';
-        ctx.fillRect(-18, -2, 6, 16);
+        ctx.fillStyle = '#ff3300';
+        ctx.beginPath();
+        ctx.arc(0, 22, 6 + Math.random() * 4, 0, Math.PI * 2);
+        ctx.fill();
         ctx.fillStyle = '#ffcc00';
-        ctx.fillRect(-18, 14, 6, 8 + Math.random() * 6);
+        ctx.beginPath();
+        ctx.arc(0, 19, 4, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       ctx.restore();
     }
 
-    function drawPlatform(p) {
-      ctx.save();
-      if (p.type === 'moving') {
-        ctx.fillStyle = '#00e5ff';
-        ctx.shadowColor = '#00e5ff';
-      } else {
-        ctx.fillStyle = '#00ff66';
-        ctx.shadowColor = '#00ff66';
-      }
-      ctx.shadowBlur = 8;
-      ctx.beginPath();
-      ctx.roundRect(p.x, p.y, p.w, p.h, 6);
-      ctx.fill();
-      ctx.restore();
-    }
-
+    // 6. Отрисовка предметов и монет
     function drawItem(it) {
-      ctx.font = '18px sans-serif';
-      let icon = '💎';
-      if (it.type === 'eth') icon = '💠';
-      if (it.type === 'btc') icon = '🪙';
-      if (it.type === 'rocket') icon = '🚀';
-      ctx.fillText(icon, it.x, it.y + 16);
+      if (it.collected) return;
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(it.x, it.y, it.r, 0, Math.PI * 2);
+
+      if (it.type === 'rocket') {
+        ctx.fillStyle = '#ff3366';
+        ctx.fill();
+        ctx.font = '12px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🚀', it.x, it.y);
+      } else if (it.type === 'btc') {
+        ctx.fillStyle = '#f59e0b';
+        ctx.fill();
+        ctx.strokeStyle = '#fef3c7';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#78350f';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('₿', it.x, it.y + 0.5);
+      } else if (it.type === 'eth') {
+        ctx.fillStyle = '#818cf8';
+        ctx.fill();
+        ctx.strokeStyle = '#c7d2fe';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#1e1b4b';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('♦', it.x, it.y);
+      } else {
+        ctx.fillStyle = '#38bdf8';
+        ctx.fill();
+        ctx.strokeStyle = '#bae6fd';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        ctx.fillStyle = '#0c4a6e';
+        ctx.font = 'bold 9px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('G', it.x, it.y + 0.5);
+      }
+      ctx.restore();
     }
 
-    // 7. Основной цикл игры
-    function loop() {
-      update();
-      render();
-      if (!isGameOver) requestAnimationFrame(loop);
-    }
-
+    // 7. Игровой цикл
     function update() {
-      // Горизонтальное движение с плавным сглаживанием
-      player.x += (targetX - player.x) * 0.2;
-      if (targetX > player.x + 2) player.facing = 1;
-      else if (targetX < player.x - 2) player.facing = -1;
+      if (isGameOver) return;
 
-      // Циклический перенос через экран
-      if (player.x < -player.w) player.x = W;
+      // Горизонтальное управление
+      if (moveLeft) {
+        player.vx = -5.8;
+        player.facing = -1;
+      } else if (moveRight) {
+        player.vx = 5.8;
+        player.facing = 1;
+      } else {
+        player.vx *= 0.82;
+      }
+      player.x += player.vx;
+
+      // Циклический перенос через края экрана
+      if (player.x + player.w < 0) player.x = W;
       if (player.x > W) player.x = -player.w;
 
-      // Действие бустера
+      // Бустер ракета
       if (rocketTimer > 0) {
         rocketTimer--;
-        player.vy = -12;
+        player.vy = -14;
         if (rocketTimer === 0) {
           document.getElementById('buff-indicator').innerHTML = '';
         }
       } else {
-        player.vy += gravity;
+        player.vy += player.gravity;
       }
-
       player.y += player.vy;
 
-      // Движение платформ
+      // Подвижные платформы
       for (let p of platforms) {
         if (p.type === 'moving') {
-          p.x += p.speed * p.dir;
-          if (p.x <= 0 || p.x + p.w >= W) p.dir *= -1;
+          p.x += p.vx;
+          if (p.x <= 8 || p.x + p.w >= W - 8) p.vx *= -1;
         }
       }
 
-      // Проверка прыжка от платформы (только при падении)
+      // Прыжки от платформ (только при движении вниз)
       if (player.vy > 0 && rocketTimer === 0) {
         for (let p of platforms) {
           if (
             player.x + player.w * 0.7 > p.x &&
             player.x + player.w * 0.3 < p.x + p.w &&
             player.y + player.h >= p.y &&
-            player.y + player.h <= p.y + p.h + player.vy
+            player.y + player.h <= p.y + p.h + player.vy + 2
           ) {
-            player.vy = player.jumpForce;
-            playTone(420, 0.08, 'triangle');
-            haptic('light');
+            if (p.type === 'dump') {
+              p.broken = true;
+              player.vy = player.jumpForce * 0.9;
+              playTone(180, 0.15, 'sawtooth');
+              haptic('heavy');
+            } else {
+              player.vy = player.jumpForce;
+              playTone(380, 0.08, 'triangle');
+              haptic('light');
+            }
             break;
           }
         }
       }
 
-      // Сбор предметов
+      // Удаление треснувших красных платформ
+      platforms = platforms.filter(p => !p.broken);
+
+      // Сбор предметов и монет
+      const px = player.x + player.w / 2;
+      const py = player.y + player.h / 2;
+
       for (let it of items) {
-        if (!it.collected &&
-            player.x < it.x + it.w &&
-            player.x + player.w > it.x &&
-            player.y < it.y + it.h &&
-            player.y + player.h > it.y) {
-          it.collected = true;
-          if (it.type === 'rocket') {
-            rocketTimer = 160;
-            document.getElementById('buff-indicator').innerHTML = '<div class="buff-pill">🚀 РАКЕТА!</div>';
-            playTone(700, 0.3, 'sawtooth');
-            haptic('success');
-          } else {
-            runCoins[it.type]++;
-            totalCoins[it.type]++;
-            playTone(900, 0.06, 'sine');
-            haptic('selection');
-            updateUI();
+        if (!it.collected) {
+          if (it.platform && it.platform.type === 'moving') {
+            it.x = it.platform.x + it.platform.w / 2;
+          }
+          const dist = Math.hypot(px - it.x, py - it.y);
+          if (dist < player.w / 2 + it.r) {
+            it.collected = true;
+            if (it.type === 'rocket') {
+              rocketTimer = 160;
+              document.getElementById('buff-indicator').innerHTML = '<div class="buff-pill">🚀 РАКЕТА!</div>';
+              playTone(600, 0.25, 'sawtooth');
+              haptic('success');
+            } else {
+              if (it.type === 'gram') { runGram++; totalGram++; }
+              else if (it.type === 'eth') { runEth++; totalEth++; }
+              else if (it.type === 'btc') { runBtc++; totalBtc++; }
+
+              localStorage.setItem('ch_gram', totalGram);
+              localStorage.setItem('ch_eth', totalEth);
+              localStorage.setItem('ch_btc', totalBtc);
+
+              playTone(850, 0.06, 'sine');
+              haptic('selection');
+              updateUI();
+            }
           }
         }
       }
 
-      // Скроллинг мира вверх при подъеме игрока
+      // Скроллинг мира при наборе высоты
       if (player.y < H * 0.42) {
         const delta = H * 0.42 - player.y;
         player.y = H * 0.42;
-        score += Math.floor(delta / 3);
+        score += Math.floor(delta / 2);
 
         for (let p of platforms) p.y += delta;
         for (let it of items) it.y += delta;
 
-        // Удаление вышедших за экран объектов
-        platforms = platforms.filter(p => p.y < H);
-        items = items.filter(it => it.y < H && !it.collected);
+        // Удаление платформ ниже экрана
+        platforms = platforms.filter(p => p.y < H + 50);
+        items = items.filter(it => it.y < H + 50 && !it.collected);
 
-        // Генерация новых платформ вверху
+        // Спавн новых платформ вверху
         const highestPlatformY = Math.min(...platforms.map(p => p.y));
-        if (highestPlatformY > 80) {
-          const type = Math.random() < 0.25 ? 'moving' : 'static';
-          const p = createPlatform(highestPlatformY - (55 + Math.random() * 35), type);
+        if (highestPlatformY > 75) {
+          const roll = Math.random();
+          let type = 'normal';
+          if (roll < 0.22) type = 'dump';
+          else if (roll < 0.48) type = 'moving';
+
+          const p = createPlatform(highestPlatformY - (58 + Math.random() * 32), type);
           platforms.push(p);
-          maybeSpawnItem(p);
+          spawnItem(p);
         }
 
         updateUI();
       }
 
-      // Поражение (падение вниз экрана)
-      if (player.y > H + 50) {
-        gameOver();
+      // Падение в бездну
+      if (player.y > H + 40) {
+        isGameOver = true;
+        haptic('heavy');
+        playTone(140, 0.35, 'sawtooth');
+
+        if (score > bestScore) {
+          bestScore = score;
+          localStorage.setItem('hamster_best', bestScore);
+          document.getElementById('ui-best').textContent = bestScore;
+        }
+
+        document.getElementById('final-score').textContent = score;
+        document.getElementById('run-gram').textContent = runGram;
+        document.getElementById('run-eth').textContent = runEth;
+        document.getElementById('run-btc').textContent = runBtc;
+        document.getElementById('game-over').style.display = 'flex';
       }
     }
 
@@ -1113,51 +666,54 @@
       ctx.clearRect(0, 0, W, H);
 
       // Фон-сетка
-      ctx.strokeStyle = 'rgba(0, 255, 102, 0.04)';
+      ctx.strokeStyle = 'rgba(0, 255, 102, 0.05)';
       ctx.lineWidth = 1;
-      for (let y = 0; y < H; y += 30) {
+      for (let y = 0; y < H; y += 32) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(W, y);
         ctx.stroke();
       }
 
-      platforms.forEach(drawPlatform);
+      // Отрисовка платформ
+      for (let p of platforms) {
+        ctx.save();
+        if (p.type === 'dump') {
+          ctx.fillStyle = '#ef4444';
+          ctx.shadowColor = '#ef4444';
+        } else if (p.type === 'moving') {
+          ctx.fillStyle = '#38bdf8';
+          ctx.shadowColor = '#38bdf8';
+        } else {
+          ctx.fillStyle = '#22c55e';
+          ctx.shadowColor = '#22c55e';
+        }
+        ctx.shadowBlur = 8;
+        ctx.beginPath();
+        ctx.roundRect(p.x, p.y, p.w, p.h, 6);
+        ctx.fill();
+        ctx.restore();
+      }
+
+      // Отрисовка предметов
       items.forEach(drawItem);
+
+      // Отрисовка хомяка
       drawHamster(player.x, player.y, player.facing);
     }
 
-    function updateUI() {
-      document.getElementById('ui-score').innerText = score;
-      document.getElementById('b-gram').innerText = totalCoins.gram;
-      document.getElementById('b-eth').innerText = totalCoins.eth;
-      document.getElementById('b-btc').innerText = totalCoins.btc;
+    function loop() {
+      update();
+      render();
+      if (!isGameOver) requestAnimationFrame(loop);
     }
 
-    function gameOver() {
-      isGameOver = true;
-      haptic('heavy');
-      playTone(180, 0.35, 'sawtooth');
-
-      if (score > bestScore) {
-        bestScore = score;
-        localStorage.setItem('hamster_best', bestScore);
-        document.getElementById('ui-best').innerText = bestScore;
-      }
-
-      document.getElementById('final-score').innerText = score;
-      document.getElementById('run-gram').innerText = runCoins.gram;
-      document.getElementById('run-eth').innerText = runCoins.eth;
-      document.getElementById('run-btc').innerText = runCoins.btc;
-      document.getElementById('game-over').style.display = 'flex';
-    }
-
-    document.getElementById('btn-restart').addEventListener('click', () => {
+    document.getElementById('btn-restart').onclick = () => {
       initGame();
       requestAnimationFrame(loop);
-    });
+    };
 
-    // Старт игры при загрузке
+    // Запуск игры
     initGame();
     requestAnimationFrame(loop);
   </script>
