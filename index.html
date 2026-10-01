@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Gem Drop TMA: Неоновый Синтез</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            tgbg: '#0f172a',
+            tgcard: '#1e293b',
+            accent: '#06b6d4',
+            fever: '#f59e0b',
+            gold: '#fbbf24',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    /* Отключение скролла и зума на мобилках */
+    * {
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    body, html {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b0f19;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .neon-glow {
+      box-shadow: 0 0 15px rgba(6, 182, 212, 0.45);
+    }
+    .fever-glow {
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.7);
+      animation: pulse-glow 1s infinite alternate;
+    }
+    @keyframes pulse-glow {
+      from { box-shadow: 0 0 15px rgba(245, 158, 11, 0.5); }
+      to { box-shadow: 0 0 35px rgba(239, 68, 68, 0.9); }
+    }
+    .fever-border {
+      border-color: #f59e0b !important;
+    }
+    /* Кастомный скроллбар для вкладок */
+    ::-webkit-scrollbar {
+      width: 4px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="flex flex-col h-screen text-slate-100 bg-[#090d16] select-none">
+
+  <!-- Верхняя плашка: Профиль игрока, баланс монет и энергии -->
+  <header class="flex-none px-3 pt-2 pb-1.5 bg-[#0f172a]/95 border-b border-slate-800/80 backdrop-blur z-20">
+    <div class="flex items-center justify-between gap-2 max-w-md mx-auto">
+      <!-- Аватар и Имя -->
+      <div class="flex items-center space-x-2">
+                <div id="user-avatar" class="w-8 h-8 rounded-full bg-gradient-to-tr from-cyan-500 to-indigo-600 flex items-center justify-center font-bold text-xs shadow-inner">
+          TG
+        </div>
+        <div class="leading-tight">
+          <div id="user-name" class="text-xs font-semibold truncate
